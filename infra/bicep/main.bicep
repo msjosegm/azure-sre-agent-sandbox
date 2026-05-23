@@ -191,6 +191,19 @@ module aks 'modules/aks.bicep' = {
   }
 }
 
+// Grant AKS managed identity Network Contributor on the VNet so the cloud
+// controller can manage NSG rules on the subnet for LoadBalancer services.
+// Without this, the cloud controller cannot update the subnet NSG and traffic
+// from the Azure Load Balancer is blocked by the subnet NSG's default deny rule.
+module aksVnetRoleAssignment 'modules/aks-vnet-rbac.bicep' = {
+  scope: resourceGroup
+  name: 'deploy-aks-vnet-rbac'
+  params: {
+    vnetName: network.outputs.vnetName
+    aksManagedIdentityPrincipalId: aks.outputs.aksIdentityPrincipalId
+  }
+}
+
 // Key Vault for secrets management
 module keyVault 'modules/key-vault.bicep' = {
   scope: resourceGroup

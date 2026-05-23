@@ -28,6 +28,45 @@ param servicesSubnetPrefix string = '10.0.4.0/24'
 // RESOURCES
 // =============================================================================
 
+// NSG for AKS subnet - allows HTTP/HTTPS from internet so Azure LB can reach nodes
+resource aksSubnetNsg 'Microsoft.Network/networkSecurityGroups@2024-01-01' = {
+  name: '${vnetName}-snet-aks-nsg'
+  location: location
+  tags: tags
+  properties: {
+    securityRules: [
+      {
+        name: 'Allow-HTTP-LoadBalancer'
+        properties: {
+          priority: 200
+          protocol: 'Tcp'
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '80'
+          description: 'Allow HTTP inbound from internet for AKS LoadBalancer services'
+        }
+      }
+      {
+        name: 'Allow-HTTPS-LoadBalancer'
+        properties: {
+          priority: 210
+          protocol: 'Tcp'
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '443'
+          description: 'Allow HTTPS inbound from internet for AKS LoadBalancer services'
+        }
+      }
+    ]
+  }
+}
+
 resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
   name: vnetName
   location: location
@@ -45,6 +84,9 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
           addressPrefix: aksSubnetPrefix
           privateEndpointNetworkPolicies: 'Disabled'
           privateLinkServiceNetworkPolicies: 'Enabled'
+          networkSecurityGroup: {
+            id: aksSubnetNsg.id
+          }
         }
       }
       {
